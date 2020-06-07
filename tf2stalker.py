@@ -57,13 +57,29 @@ class Steam:
         pass
 
 
+def get_team_id(filepath):
+    link = open(filepath , 'r')    
+    liste = link.readlines()
+    url_team = liste[0]
+    team_id = url_team.strip("https:etf2l.orgteams/\n")
+
+
+    return team_id
+
 
 
 if __name__ == "__main__":
     
-    
+    print(get_team_id('to_stalk.txt'))
+
     new_team = Team('32155')
 
     new_team.genPlayerStatsList()
 
     new_team.printPlayerStats()
+
+
+
+
+
+    
