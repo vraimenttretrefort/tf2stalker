@@ -1,0 +1,26 @@
+
+
+################################
+1- fichier
+2- page team
+3- profils etf2l des mecs
+4- API ETF2L
+5- logs.tf, tf2c, steam
+
+
+################################
+-> Nom
+-> #H de jeu
+-> saisons jouées + quelles div
+-> Moyenne d'#h de jeu
+-> Liens logs.tf, profil etf2l, page steam
+-> Stats logs.tf https://logs.tf/about#json
+	=> Rechercher les logs à partir de tous les id64 (X) des 6 joueurs : http://logs.tf/api/v1/log?player=X,X,X,X,X,X
+	=> Pour chaque scrim joué (ne contenant pas tf2center dans le titre du log) :
+		==> Récuperer l'id du log
+		==> Acceder au contennu du log : http://logs.tf/api/v1/log/<IDLOG>
+		==> Récuperer la classe jouée
+		==> Récuperer le k/d
+		==> win/loose ?
+
+################################
