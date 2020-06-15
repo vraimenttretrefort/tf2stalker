@@ -22,5 +22,5 @@
 		==> Récuperer la classe jouée
 		==> Récuperer le k/d
 		==> win/loose ?
-
+=> Inventaire steam : médailles
 ################################
