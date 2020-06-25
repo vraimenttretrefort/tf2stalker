@@ -10,6 +10,7 @@ LOGS_PROFILE = 'http://logs.tf/profile'
 LOBBIES_PROFILE = 'https://tf2center.com/profile'
 
 
+
 class Team:
 
     # Ex : https://api.etf2l.org/team/32155.json
@@ -35,10 +36,11 @@ class Team:
       
 
     def printPlayerStats(self):
-
+        
         for player in self.players:
             print(player.ETF2L.name)
             print(f'{ETF2L_PLAYER_PAGE}/{player.ETF2L.id}/')
+            player.ETF2L.check_matchs()
             #print(f'{STEAM_PROFILE}/{player.steam_id64}/')
             #print(f'{LOGS_PROFILE}/{player.steam_id64}')
             #print(f'{LOBBIES_PROFILE}/{player.steam_id64}/')
@@ -67,7 +69,56 @@ class ETF2L:
         self.id = playerID
         self.name = self.playerData['name']
         self.classes = self.playerData['classes']
-        
+
+
+    def check_matchs(self):
+        page = 1
+        self.hlmatchs = 0
+        self.sixes_matchs = 0
+        self.num6v6Playoff = 0
+        self.numHlPlayoff = 0
+        self.sixes_matchesplayed = {}
+        self.hl_matchesplayed = {}
+        req_page = requests.get(f'{ETF2L_PLAYER_API}/{self.id}/results/{page}.json?since=0')
+        self.pageData = loads(req_page.text)['page']
+        self.numPages = self.pageData['total_pages']
+        for page in range(1,self.numPages+1,1):
+            req_page = requests.get(f'{ETF2L_PLAYER_API}/{self.id}/results/{page}.json?since=0')  # Actualiser chaque fois pour TOUS les matchs
+            self.resultats = loads(req_page.text)['results']  # Pareil qu'au dessus
+            for resultat in self.resultats:
+                name_comp = resultat['competition']['name']
+                match = resultat['division']['name']
+                if not match:
+                    if 'Playoffs' in name_comp:
+                        match = name_comp.split(': ')[1]
+                    else:
+                        match = 'Other Cup'
+
+
+
+                if resultat['competition']['type'] == '6on6':
+                    if 'Playoffs' in name_comp: # Compte les playoffs
+                        self.num6v6Playoff = self.num6v6Playoff + 1
+                    self.sixes_matchs = self.sixes_matchs + 1
+                    if match not in self.sixes_matchesplayed:
+                        self.sixes_matchesplayed.update({match:1})
+                    else:
+                        self.sixes_matchesplayed[match] += 1
+
+
+                elif resultat['competition']['type'] == 'Highlander':
+                    if 'Playoffs' in name_comp:
+                        self.numHlPlayoff = self.numHlPlayoff + 1
+                    self.hlmatchs = self.hlmatchs + 1
+                    if match not in self.hl_matchesplayed:
+                        self.hl_matchesplayed.update({match:1})
+                    else:
+                        self.hl_matchesplayed[match] += 1
+        print(f' Dont {self.sixes_matchs} en 6v6 et {self.hlmatchs} en Highlander.')
+        print(f' Ce joueur a fait {self.num6v6Playoff} matchs en playoffs 6v6 et {self.numHlPlayoff} matchs en playoffs Highlander.')
+        print(f' Ce joueur a joué dans les matchs suivants 6v6 : {self.sixes_matchesplayed} .')
+        print(f' Ce joueur a joué dans les matchs suivants Highlander : {self.hl_matchesplayed} .')
+
         
 
 class Steam:
@@ -105,3 +156,4 @@ if __name__ == "__main__":
     new_team.genPlayerStatsList()
 
     new_team.printPlayerStats()
+
