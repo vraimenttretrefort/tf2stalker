@@ -31,7 +31,6 @@ class Team:
         self.name = self.teamData['name']
 
         self.players = self.genPlayerList()
-
         self.avgTf2PlaytimeHrs = self.getAvgTf2PlaytimeHrs()
         
     def genPlayerList(self):
@@ -64,21 +63,34 @@ class Team:
 
 
 
-    def printPlayerStats(self):
+    def printPlayersStats(self):
         
         for player in self.players:
             print("-"*15)
             print(player.ETF2L.name)
             print("-"*15)
-            print(f'{ETF2L_PLAYER_PAGE}/{player.ETF2L.id}/')
-            player.ETF2L.check_matchs()
-            print(f'{player.Steam.profileUrl}')
-            print(f'\tTF2 playtime = {player.Steam.tf2PlaytimeHrs}H')
-            for medal in player.Steam.tf2Medals:
-                print(f'\t{medal}')
+            
 
-            #print(f'{LOGSTF_PROFILE}/{player.steam_id64}')
-            #print(f'{TF2CENTER_PROFILE}/{player.steam_id64}/')
+            print(5*"#" + "ETF2L" + "#"*5)
+            print(f"\t{player.ETF2L.profileUrl}")
+            print("\tClasses on ETF2L : {player.ETF2L.classes}")
+            sixes_matches = player.ETF2L.machesplayed["6on6"]
+            hl_matches = player.ETF2L.machesplayed["Highlander"]
+            print(f"\t6v6 matches played : {sixes_matches}")
+            print(f"\tHighlander matches played : {hl_matches}")
+
+
+            print(5*"#" + "Steam" + "#"*5)
+            print(f"\t{player.Steam.profileUrl}")
+            print(f"\tTF2 playtime = {player.Steam.tf2PlaytimeHrs}H")
+            for medal in player.Steam.tf2Medals:
+                print(f"\t{medal}")
+            
+            print(5*"#" + "Logs.tf" + "#"*5)
+            print(f"\t{LOGSTF_PROFILE}/{player.Steam.id64}")
+
+            print("\n")
+
 
 
 class Player:
@@ -98,59 +110,63 @@ class ETF2L:
         self.playerData = loads(api_req.text)['player']
 
         self.id = playerID
+        self.profileUrl = f'{ETF2L_PLAYER_PAGE}/{self.id}'
         self.name = self.playerData['name']
         self.classes = self.playerData['classes']
 
+        self.machesplayed = self.getMatches()
 
-    def check_matchs(self):
-        page = 1
-        self.hlmatchs = 0
-        self.sixes_matchs = 0
-        self.num6v6Playoff = 0
-        self.numHlPlayoff = 0
-        self.sixes_matchesplayed = {}
-        self.hl_matchesplayed = {}
-        req_page = requests.get(f'{ETF2L_PLAYER_API}/{self.id}/results/{page}.json?since=0')
-        self.pageData = loads(req_page.text)['page']
-        self.numPages = self.pageData['total_pages']
-        for page in range(1,self.numPages+1,1):
-            req_page = requests.get(f'{ETF2L_PLAYER_API}/{self.id}/results/{page}.json?since=0')  # Actualiser chaque fois pour TOUS les matchs
-            self.resultats = loads(req_page.text)['results']  # Pareil qu'au dessus
-            for resultat in self.resultats:
-                name_comp = resultat['competition']['name']
-                match = resultat['division']['name']
-                if not match:
+
+
+
+    def getMatches(self):
+
+        machesplayed = {
+            '6on6':{},
+            'Highlander':{}            
+        }
+
+        # light API request by getting the number of pages without any actual result
+        numPages = int(loads(requests.get(f'{ETF2L_PLAYER_API}/{self.id}/results.json?since=0').text)['page']['total_pages'])
+    
+        for page in range(1, numPages+1):
+
+            # GET the current page
+            req_page = requests.get(f'{ETF2L_PLAYER_API}/{self.id}/results/{page}.json?since=0')
+            page_results = loads(req_page.text)['results']
+
+
+            for match in page_results:
+                divname = match['division']['name']
+                matchtype = match['competition']['type']
+
+                # Non-regular ETF2L divisions (Playoffs, Fun cups) have no name returned by the API
+                if not divname:
+                    name_comp = match['competition']['name']
+                    
                     if 'Playoffs' in name_comp:
-                        match = name_comp.split(': ')[1]
+                        # Eg: "Season 29: Low Playoffs" ==> "Low Playoffs"
+                        divname = name_comp.split(': ')[1]
                     else:
-                        match = 'Other Cup'
+                        divname = 'Other Cup'
 
 
-
-                if resultat['competition']['type'] == '6on6':
-                    if 'Playoffs' in name_comp: # Compte les playoffs
-                        self.num6v6Playoff = self.num6v6Playoff + 1
-                    self.sixes_matchs = self.sixes_matchs + 1
-                    if match not in self.sixes_matchesplayed:
-                        self.sixes_matchesplayed.update({match:1})
+                # Count the number of 6on6 and HL matches in each div
+                if matchtype == '6on6':
+                    if divname not in machesplayed['6on6']:
+                        machesplayed['6on6'].update({divname:1})
                     else:
-                        self.sixes_matchesplayed[match] += 1
+                        machesplayed['6on6'][divname] += 1
 
 
-                elif resultat['competition']['type'] == 'Highlander':
-                    if 'Playoffs' in name_comp:
-                        self.numHlPlayoff = self.numHlPlayoff + 1
-                    self.hlmatchs = self.hlmatchs + 1
-                    if match not in self.hl_matchesplayed:
-                        self.hl_matchesplayed.update({match:1})
+                elif matchtype == 'Highlander':
+                    if divname not in machesplayed['Highlander']:
+                        machesplayed['Highlander'].update({divname:1})
                     else:
-                        self.hl_matchesplayed[match] += 1
-        print(f' Dont {self.sixes_matchs} en 6v6 et {self.hlmatchs} en Highlander.')
-        print(f' Ce joueur a fait {self.num6v6Playoff} matchs en playoffs 6v6 et {self.numHlPlayoff} matchs en playoffs Highlander.')
-        print(f' Ce joueur a joué dans les matchs suivants 6v6 : {self.sixes_matchesplayed} .')
-        print(f' Ce joueur a joué dans les matchs suivants Highlander : {self.hl_matchesplayed} .')
-
+                        machesplayed['Highlander'][divname] += 1
         
+        return(machesplayed)
+       
 
 class Steam:
     """
@@ -176,7 +192,7 @@ class Steam:
         if playerOwnedGames:
             for game in playerOwnedGames['games']:
                 if game['appid'] == STEAM_TF2_APPID:
-                    tf2PlaytimeHrs = game['playtime_forever']//60
+                    tf2PlaytimeHrs = game['playtime_forever']//60 #playtime_forever in minutes
         
         return(tf2PlaytimeHrs)
         
@@ -220,7 +236,7 @@ if __name__ == "__main__":
 
     new_team = Team('32155')
 
-    new_team.printPlayerStats()
+    new_team.printPlayersStats()
 
 
     print(f'This team has an average of {new_team.avgTf2PlaytimeHrs[0]} hours among {new_team.avgTf2PlaytimeHrs[1]} public profiles')
