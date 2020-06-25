@@ -1,0 +1,3 @@
+s = "Salut mec, ça va ?"
+mots = s.split(', ')
+print(mots)
