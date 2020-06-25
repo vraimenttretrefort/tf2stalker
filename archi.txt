@@ -9,10 +9,12 @@
 
 
 ################################
+
 DONE -> Nom
 DONE -> #H de jeu
--> saisons jouées + quelles div
+DONE -> saisons jouées + quelles div
 DONE -> Moyenne d'#h de jeu
+
 -> Liens logs.tf, profil etf2l, page steam
 -> Stats logs.tf https://logs.tf/about#json
 	=> Rechercher les logs à partir de tous les id64 (X) des 6 joueurs : http://logs.tf/api/v1/log?player=X,X,X,X,X,X
