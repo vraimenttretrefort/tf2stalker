@@ -11,7 +11,7 @@
 ################################
 -> Nom
 -> #H de jeu
--> saisons jouées + quelles div
+DONE -> saisons jouées + quelles div
 -> Moyenne d'#h de jeu
 -> Liens logs.tf, profil etf2l, page steam
 -> Stats logs.tf https://logs.tf/about#json
