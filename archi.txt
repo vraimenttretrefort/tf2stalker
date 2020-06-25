@@ -9,10 +9,12 @@
 
 
 ################################
--> Nom
--> #H de jeu
+
+DONE -> Nom
+DONE -> #H de jeu
 DONE -> saisons jouées + quelles div
--> Moyenne d'#h de jeu
+DONE -> Moyenne d'#h de jeu
+
 -> Liens logs.tf, profil etf2l, page steam
 -> Stats logs.tf https://logs.tf/about#json
 	=> Rechercher les logs à partir de tous les id64 (X) des 6 joueurs : http://logs.tf/api/v1/log?player=X,X,X,X,X,X
@@ -22,5 +24,5 @@ DONE -> saisons jouées + quelles div
 		==> Récuperer la classe jouée
 		==> Récuperer le k/d
 		==> win/loose ?
-=> Inventaire steam : médailles
+DONE -> Inventaire steam : médailles
 ################################
