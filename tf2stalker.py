@@ -61,6 +61,15 @@ class Team:
 
         return(avgTf2PlaytimeHrs, considered_players)
 
+    
+    def getTeamLogs(self):
+
+        # Id64 de la team : 76561198039669738, 76561197977230738, 76561198075159093, 76561198191579482, 76561198149688904, 76561198268216386, 76561198084798301
+        listId = []
+        for player in self.players:
+            listId.append(player.Steam.id64)
+        
+
 
 
     def printPlayersStats(self):
@@ -215,8 +224,11 @@ class Logstf:
     """
     A class that holds all logs.tf-related player info + methods
     """
-    def __init__(self):
-        pass   
+    def __init__(self,idLog):
+        self.idLog = idLog
+        self.profileUrl = f'{LOGSTF_PROFILE}/{self.idLog}'
+        tab_log = []
+        
 
 
 def get_team_id(filepath):
