@@ -1,5 +1,6 @@
 import requests
 from json import loads
+from tabulate import tabulate
 
 
 ETF2L_TEAM_API = 'https://api.etf2l.org/team'
@@ -90,6 +91,9 @@ class Team:
             print(f"\t{LOGSTF_PROFILE}/{player.Steam.id64}")
 
             print("\n")
+
+
+        print(f'This team has an average of {self.avgTf2PlaytimeHrs[0]} hours among {self.avgTf2PlaytimeHrs[1]} public profiles')
 
 
 
@@ -219,6 +223,84 @@ class Logstf:
         pass   
 
 
+class UserInterface:
+    """
+    A class that holds all attributes and methods related to displaying results
+    """
+
+    def __init__(self, teamlist):
+        self.teamlist = teamlist
+
+    
+    def tabulateTeam(self, team):
+        headers = ["Name", "Playtime", "6s seasons", "HL seasons", "Medals", "Profile urls"]
+        table = []
+        
+        for player in team.players:
+            pinfo = []
+
+            # Name
+            pinfo.append(player.ETF2L.name)
+            
+            # Playtime
+            if player.Steam.tf2PlaytimeHrs:
+                pinfo.append(player.Steam.tf2PlaytimeHrs)
+            else:
+                pinfo.append("Private profile :/")
+            
+            # 6s Seasons
+            sixes_matches = ""
+            for div in player.ETF2L.machesplayed["6on6"]:
+                sixes_matches += '{div} : {numMatches}\n'.format(div=div, numMatches=player.ETF2L.machesplayed["6on6"][div])
+            pinfo.append(sixes_matches)
+
+            # HL Seasons
+            hl_matches = ""
+            for div in player.ETF2L.machesplayed["Highlander"]:
+                hl_matches += '{div} : {numMatches}\n'.format(div=div, numMatches=player.ETF2L.machesplayed["Highlander"][div])
+            pinfo.append(hl_matches)
+
+            # Medals
+            player_medals = ""
+            for medal in player.Steam.tf2Medals:
+                player_medals += f'{medal}\n'
+            pinfo.append(player_medals)
+
+            # Profile urls
+            urls = ""
+            urls += f'{player.ETF2L.profileUrl}\n'
+            urls += f'{player.Steam.profileUrl}\n'
+            #TODO : Utiliser l'attribut player.Logstf.profileUrl quand il sera dispo
+            urls += f'{LOGSTF_PROFILE}/{player.Steam.id64}'
+            pinfo.append(urls)
+
+
+            table.append(pinfo)
+        
+        # Total hours
+        total_h = ["", f"AVERAGE TOTAL HOURS\n{team.avgTf2PlaytimeHrs[0]}H / {team.avgTf2PlaytimeHrs[1]} public profiles", "", "", "", "", "", ""]
+        table.append(total_h)
+
+        team_tab = tabulate(table, headers, tablefmt="grid")
+
+        return(team_tab)
+
+
+    def printTeamsTables(self):
+        teamTables = []
+
+        # Generate a list of tabulate objects
+        for team in self.teamlist:
+            teamTables.append(self.tabulateTeam(team))
+        
+        # Display each team table
+        for teamTable in teamTables:
+            print(teamTable)
+
+    
+
+
+
 def get_team_id(filepath):
     link = open(filepath , 'r')    
     liste = link.readlines()
@@ -232,12 +314,9 @@ def get_team_id(filepath):
 
 if __name__ == "__main__":
     
-    print(get_team_id('to_stalk.txt'))
-
     new_team = Team('32155')
+    #new_team.printPlayersStats()
 
-    new_team.printPlayersStats()
-
-
-    print(f'This team has an average of {new_team.avgTf2PlaytimeHrs[0]} hours among {new_team.avgTf2PlaytimeHrs[1]} public profiles')
+    UI = UserInterface([new_team])
+    UI.printTeamsTables()
 
