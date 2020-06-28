@@ -139,35 +139,35 @@ class ETF2L:
             req_page = requests.get(f'{ETF2L_PLAYER_API}/{self.id}/results/{page}.json?since=0')
             page_results = loads(req_page.text)['results']
 
+            if page_results:
+                for match in page_results:
+                    divname = match['division']['name']
+                    matchtype = match['competition']['type']
 
-            for match in page_results:
-                divname = match['division']['name']
-                matchtype = match['competition']['type']
-
-                # Non-regular ETF2L divisions (Playoffs, Fun cups) have no name returned by the API
-                if not divname:
-                    name_comp = match['competition']['name']
-                    
-                    if 'Playoffs' in name_comp:
-                        # Eg: "Season 29: Low Playoffs" ==> "Low Playoffs"
-                        divname = name_comp.split(': ')[1]
-                    else:
-                        divname = 'Other Cup'
-
-
-                # Count the number of 6on6 and HL matches in each div
-                if matchtype == '6on6':
-                    if divname not in machesplayed['6on6']:
-                        machesplayed['6on6'].update({divname:1})
-                    else:
-                        machesplayed['6on6'][divname] += 1
+                    # Non-regular ETF2L divisions (Playoffs, Fun cups) have no name returned by the API
+                    if not divname:
+                        name_comp = match['competition']['name']
+                        
+                        if 'Playoffs' in name_comp:
+                            # Eg: "Season 29: Low Playoffs" ==> "Low Playoffs"
+                            divname = name_comp.split(': ')[1]
+                        else:
+                            divname = 'Other Cup'
 
 
-                elif matchtype == 'Highlander':
-                    if divname not in machesplayed['Highlander']:
-                        machesplayed['Highlander'].update({divname:1})
-                    else:
-                        machesplayed['Highlander'][divname] += 1
+                    # Count the number of 6on6 and HL matches in each div
+                    if matchtype == '6on6':
+                        if divname not in machesplayed['6on6']:
+                            machesplayed['6on6'].update({divname:1})
+                        else:
+                            machesplayed['6on6'][divname] += 1
+
+
+                    elif matchtype == 'Highlander':
+                        if divname not in machesplayed['Highlander']:
+                            machesplayed['Highlander'].update({divname:1})
+                        else:
+                            machesplayed['Highlander'][divname] += 1
         
         return(machesplayed)
        
