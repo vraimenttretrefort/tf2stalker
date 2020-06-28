@@ -64,7 +64,7 @@ class Team:
 
 
 
-    def printPlayersStats(self):
+    def DBGprintPlayersStats(self):
         
         for player in self.players:
             print("-"*15)
@@ -233,7 +233,7 @@ class UserInterface:
 
     
     def tabulateTeam(self, team):
-        headers = ["Name", "Playtime", "6s seasons", "HL seasons", "Medals", "Profile urls"]
+        headers = ["Name", "Playtime", "6s matches", "HL matches", "Medals", "Profile urls"]
         table = []
         
         for player in team.players:
@@ -314,8 +314,8 @@ def get_team_id(filepath):
 
 if __name__ == "__main__":
     
-    new_team = Team('32155')
-    #new_team.printPlayersStats()
+    new_team = Team('32107')
+    #new_team.DBGprintPlayersStats()
 
     UI = UserInterface([new_team])
     UI.printTeamsTables()
