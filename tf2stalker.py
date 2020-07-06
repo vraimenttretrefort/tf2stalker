@@ -58,7 +58,7 @@ class Team:
                 avgTf2PlaytimeHrs += player.Steam.tf2PlaytimeHrs
                 considered_players += 1
 
-        avgTf2PlaytimeHrs = avgTf2PlaytimeHrs//6
+        avgTf2PlaytimeHrs = avgTf2PlaytimeHrs//considered_players
 
         return(avgTf2PlaytimeHrs, considered_players)
 
@@ -94,7 +94,6 @@ class Team:
 
 
         print(f'This team has an average of {self.avgTf2PlaytimeHrs[0]} hours among {self.avgTf2PlaytimeHrs[1]} public profiles')
-
 
 
 class Player:
