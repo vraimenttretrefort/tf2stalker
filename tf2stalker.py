@@ -120,7 +120,11 @@ class ETF2L:
 
 
     def getMatches(self):
-
+        """
+        Counts the number of matches played for a given player.
+        Gathers all matches and split them into different categories.
+        Returns a dictionnary containing the name of the division as the key and the number of matches played in the division as the value.
+        """
         machesplayed = {
             '6on6':{},
             'Highlander':{}            
@@ -197,6 +201,9 @@ class Steam:
         return(tf2PlaytimeHrs)
         
     def getTf2Medals(self):
+        """
+        Returns all the Team Fortress 2 medals within a player Steam inventory in a list.
+        """
 
         tf2Medals = []
         api_req =  requests.get(f'{STEAM_INVENTORY}/{self.id64}/{STEAM_TF2_APPID}/2?l=english')
