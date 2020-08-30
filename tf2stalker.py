@@ -1,5 +1,6 @@
 import requests
 from json import loads
+from tabulate import tabulate
 
 
 ETF2L_TEAM_API = 'https://api.etf2l.org/team'
@@ -57,13 +58,13 @@ class Team:
                 avgTf2PlaytimeHrs += player.Steam.tf2PlaytimeHrs
                 considered_players += 1
 
-        avgTf2PlaytimeHrs = avgTf2PlaytimeHrs//6
+        avgTf2PlaytimeHrs = avgTf2PlaytimeHrs//considered_players
 
         return(avgTf2PlaytimeHrs, considered_players)
 
 
 
-    def printPlayersStats(self):
+    def DBGprintPlayersStats(self):
         
         for player in self.players:
             print("-"*15)
@@ -92,6 +93,8 @@ class Team:
             print("\n")
 
 
+        print(f'This team has an average of {self.avgTf2PlaytimeHrs[0]} hours among {self.avgTf2PlaytimeHrs[1]} public profiles')
+
 
 class Player:
 
@@ -117,7 +120,50 @@ class ETF2L:
         self.machesplayed = self.getMatches()
 
 
+    def findDiv(self, match_string):
+        """
+        Divisions names are a huge mess, none of them are standard.
+        This functions tries to find a fitting one anyway.
 
+        Example output :
+        - Premiership => Premiership
+        - Season 32 Premiership Qualifiers => Premiership
+        - Premiership Group => Premiership
+        - Season 32 Premiership Qualifiers => Premiership
+        - Division 3A => D3
+        """
+
+        # New divs
+        if "Premiership" in match_string:
+            div = "Premiership"
+        
+        elif "High" in match_string:
+            div = "High"
+        
+        elif "Mid" in match_string:
+            div = "Mid"
+        
+        elif "Low" in match_string:
+            div = "Low"
+        
+        elif "Open" in match_string:
+            div = "Open"
+        
+        # Old divs
+        elif "Division " in match_string:
+            for i in range(7):
+                if f"Division {i}" in match_string:
+                    div = f"D{i}"
+        
+        # Not found
+        else:
+            div = "Other cup"
+
+        # Playoffs
+        if "Playoffs" in match_string:
+            div += " Playoffs"
+        
+        return(div)
 
     def getMatches(self):
         """
@@ -130,44 +176,43 @@ class ETF2L:
             'Highlander':{}            
         }
 
-        # light API request by getting the number of pages without any actual result
-        numPages = int(loads(requests.get(f'{ETF2L_PLAYER_API}/{self.id}/results.json?since=0').text)['page']['total_pages'])
-    
-        for page in range(1, numPages+1):
+        try:
+            # light API request by getting the number of pages without any actual result
+            numPages = int(loads(requests.get(f'{ETF2L_PLAYER_API}/{self.id}/results.json?since=0').text)['page']['total_pages'])
+        
+            for page in range(1, numPages+1):
 
-            # GET the current page
-            req_page = requests.get(f'{ETF2L_PLAYER_API}/{self.id}/results/{page}.json?since=0')
-            page_results = loads(req_page.text)['results']
+                # GET the current page
+                req_page = requests.get(f'{ETF2L_PLAYER_API}/{self.id}/results/{page}.json?since=0')
+                page_results = loads(req_page.text)['results']
 
+                if page_results:
+                    for match in page_results:
+                        divname = match['division']['name']
+                        matchtype = match['competition']['type']
 
-            for match in page_results:
-                divname = match['division']['name']
-                matchtype = match['competition']['type']
-
-                # Non-regular ETF2L divisions (Playoffs, Fun cups) have no name returned by the API
-                if not divname:
-                    name_comp = match['competition']['name']
-                    
-                    if 'Playoffs' in name_comp:
-                        # Eg: "Season 29: Low Playoffs" ==> "Low Playoffs"
-                        divname = name_comp.split(': ')[1]
-                    else:
-                        divname = 'Other Cup'
+                        # Try to find a representative div name
+                        if divname:
+                            divname = self.findDiv(match['division']['name'])
+                        else:
+                            divname = self.findDiv(match['competition']['name'])
 
 
-                # Count the number of 6on6 and HL matches in each div
-                if matchtype == '6on6':
-                    if divname not in machesplayed['6on6']:
-                        machesplayed['6on6'].update({divname:1})
-                    else:
-                        machesplayed['6on6'][divname] += 1
+                        # Count the number of 6on6 matches in each div
+                        if matchtype == '6on6':
+                            if divname not in machesplayed['6on6']:
+                                machesplayed['6on6'].update({divname:1})
+                            else:
+                                machesplayed['6on6'][divname] += 1
 
-
-                elif matchtype == 'Highlander':
-                    if divname not in machesplayed['Highlander']:
-                        machesplayed['Highlander'].update({divname:1})
-                    else:
-                        machesplayed['Highlander'][divname] += 1
+                        # Count the number of HL matches in each div
+                        elif matchtype == 'Highlander':
+                            if divname not in machesplayed['Highlander']:
+                                machesplayed['Highlander'].update({divname:1})
+                            else:
+                                machesplayed['Highlander'][divname] += 1
+        except:
+            print(f"Unable to get matches for {self.name}")
         
         return(machesplayed)
        
@@ -186,17 +231,22 @@ class Steam:
     def getTf2Playtime(self):
 
         tf2PlaytimeHrs = None
-        url_req = f'{STEAM_API}/IPlayerService/GetOwnedGames/v1/?'
-        url_req += f'key={STEAM_API_KEY}&steamid={self.id64}&include_played_free_games=1'
-        api_req =  requests.get(url_req)
 
-        playerOwnedGames = loads(api_req.text)['response']
+        try:
+            url_req = f'{STEAM_API}/IPlayerService/GetOwnedGames/v1/?'
+            url_req += f'key={STEAM_API_KEY}&steamid={self.id64}&include_played_free_games=1'
+            api_req =  requests.get(url_req)
 
-        # Dictionary not empty ==> Public profile
-        if playerOwnedGames:
-            for game in playerOwnedGames['games']:
-                if game['appid'] == STEAM_TF2_APPID:
-                    tf2PlaytimeHrs = game['playtime_forever']//60 #playtime_forever in minutes
+            playerOwnedGames = loads(api_req.text)['response']
+
+            # Dictionary not empty ==> Public profile
+            if playerOwnedGames:
+                for game in playerOwnedGames['games']:
+                    if game['appid'] == STEAM_TF2_APPID:
+                        tf2PlaytimeHrs = game['playtime_forever']//60 #playtime_forever in minutes
+
+        except:
+            print(f"Unable to get tf2 playtime for {self.id64}")
         
         return(tf2PlaytimeHrs)
         
@@ -206,14 +256,21 @@ class Steam:
         """
 
         tf2Medals = []
-        api_req =  requests.get(f'{STEAM_INVENTORY}/{self.id64}/{STEAM_TF2_APPID}/2?l=english')
-        playerInventory = loads(api_req.text)
 
-        # Dictionary not empty ==> Public profile
-        if playerInventory:
-            for tf2item in playerInventory['descriptions']:
-                if 'Tournament Medal' in tf2item['type']:
-                    tf2Medals.append(tf2item['name'])
+        try:
+            api_req =  requests.get(f'{STEAM_INVENTORY}/{self.id64}/{STEAM_TF2_APPID}/2?l=english&count=2000')
+            playerInventory = loads(api_req.text)
+
+            # Dictionary not empty ==> Public profile
+            if playerInventory:
+                for tf2item in playerInventory['descriptions']:
+                    if 'Tournament Medal' in tf2item['type']:
+                        tf2Medals.append(tf2item['name'])
+            else:
+                tf2Medals.append("Private inventory :/")
+        except:
+            print(f"Unable to get medals for {self.id64}")
+            tf2Medals.append("error")
         
         return(tf2Medals)
 
@@ -224,6 +281,84 @@ class Logstf:
     """
     def __init__(self):
         pass   
+
+
+class UserInterface:
+    """
+    A class that holds all attributes and methods related to displaying results
+    """
+
+    def __init__(self, teamlist):
+        self.teamlist = teamlist
+
+    
+    def tabulateTeam(self, team):
+        headers = ["Name", "Playtime", "6s matches", "HL matches", "Medals", "Profile urls"]
+        table = []
+        
+        for player in team.players:
+            pinfo = []
+
+            # Name
+            pinfo.append(player.ETF2L.name)
+            
+            # Playtime
+            if player.Steam.tf2PlaytimeHrs:
+                pinfo.append(player.Steam.tf2PlaytimeHrs)
+            else:
+                pinfo.append("Private profile :/")
+            
+            # 6s Seasons
+            sixes_matches = ""
+            for div in player.ETF2L.machesplayed["6on6"]:
+                sixes_matches += '{div} : {numMatches}\n'.format(div=div, numMatches=player.ETF2L.machesplayed["6on6"][div])
+            pinfo.append(sixes_matches)
+
+            # HL Seasons
+            hl_matches = ""
+            for div in player.ETF2L.machesplayed["Highlander"]:
+                hl_matches += '{div} : {numMatches}\n'.format(div=div, numMatches=player.ETF2L.machesplayed["Highlander"][div])
+            pinfo.append(hl_matches)
+
+            # Medals
+            player_medals = ""
+            for medal in player.Steam.tf2Medals:
+                player_medals += f'{medal}\n'
+            pinfo.append(player_medals)
+
+            # Profile urls
+            urls = ""
+            urls += f'{player.ETF2L.profileUrl}\n'
+            urls += f'{player.Steam.profileUrl}\n'
+            #TODO : Utiliser l'attribut player.Logstf.profileUrl quand il sera dispo
+            urls += f'{LOGSTF_PROFILE}/{player.Steam.id64}'
+            pinfo.append(urls)
+
+
+            table.append(pinfo)
+        
+        # Total hours
+        total_h = ["", f"AVERAGE TOTAL HOURS\n{team.avgTf2PlaytimeHrs[0]}H / {team.avgTf2PlaytimeHrs[1]} public profiles", "", "", "", "", "", ""]
+        table.append(total_h)
+
+        team_tab = tabulate(table, headers, tablefmt="grid")
+
+        return(team_tab)
+
+
+    def printTeamsTables(self):
+        teamTables = []
+
+        # Generate a list of tabulate objects
+        for team in self.teamlist:
+            teamTables.append(self.tabulateTeam(team))
+        
+        # Display each team table
+        for teamTable in teamTables:
+            print(teamTable)
+
+    
+
 
 
 def get_team_id(filepath):
@@ -239,12 +374,9 @@ def get_team_id(filepath):
 
 if __name__ == "__main__":
     
-    print(get_team_id('to_stalk.txt'))
+    new_team = Team('32155') #jump_etf2l_6v6.bsp
+    #new_team.DBGprintPlayersStats()
 
-    new_team = Team('32155')
-
-    new_team.printPlayersStats()
-
-
-    print(f'This team has an average of {new_team.avgTf2PlaytimeHrs[0]} hours among {new_team.avgTf2PlaytimeHrs[1]} public profiles')
+    UI = UserInterface([new_team])
+    UI.printTeamsTables()
 
